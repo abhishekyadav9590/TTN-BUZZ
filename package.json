@@ -1,0 +1,25 @@
+{
+  "name": "ttn-buzz",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "ejs": "2.6.1",
+    "express": "4.16.1",
+    "express-session": "1.16.1",
+    "http-errors": "1.6.3",
+    "jsonwebtoken": "8.5.1",
+    "mongoose": "^5.5.11",
+    "morgan": "~1.9.1",
+    "multer": "^1.4.1",
+    "passport": "^0.4.0",
+    "passport-google-oauth": "^2.0.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pug": "^2.0.3"
+  }
+}
