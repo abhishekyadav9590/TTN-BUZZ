@@ -1,6 +1,7 @@
 const createError = require('http-errors');
 const express = require('express');
-const session=require('express-session');
+//const session=require('express-session');
+const session=require('cookie-session');
 require('./services/passport-setup');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -29,7 +30,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(session({secret:"Shh, its a secret!"}));
+app.use(session({
+    keys:["secret"]
+}));
 app.use(passport.initialize());
 app.use('/', indexRouter);
 app.use('/users', usersRouter);

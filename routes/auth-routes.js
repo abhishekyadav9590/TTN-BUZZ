@@ -19,7 +19,12 @@ router.get('/google/redirect',passport.authenticate('google', {failureRedirect: 
     res.redirect(referer);
 
 });
-
+router.get('/logout',(req,res,next)=>{
+    req.logOut();
+    console.log("logout called");
+    res.clearCookie('token');
+    res.redirect('http://localhost:3001/login');
+});
 module.exports=router;
 
 

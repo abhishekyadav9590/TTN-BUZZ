@@ -7,10 +7,10 @@ const jwt=require('jsonwebtoken');
 /* GET users listing. */
 router.get('/', (req, res, next)=> {
         const token=req.headers.authorization;
-        console.log("token on server at users route is : "+token);
+        console.log("token on server at users route is: "+token);
         jwt.verify(token,'secret',(err,decoded)=>{
                 if(err){
-                     console.log('ERROR: Could not connnect to protected route ');
+                     console.log('ERROR: Could not connect to protected route ');
                      res.sendStatus(403);
                 }
                 else{
