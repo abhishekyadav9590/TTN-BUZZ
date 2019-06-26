@@ -1,12 +1,12 @@
-const {userSchema,buzzSchema,departmentSchema,complaintSchema}= require('../schema/buzz-schema');
+const {userSchema,buzzSchema,departmentSchema,complaintSchema}= require('../schema/documentsSchemas');
 const mongoose=require('mongoose');
 var userModel=mongoose.model('users',userSchema);
-var buzzModel=mongoose.model('buzzes',buzzSchema);
+var models=mongoose.model('buzzes',buzzSchema);
 var complaintModel=mongoose.model('complaints',complaintSchema);
 var departmentModel=mongoose.model('departments',departmentSchema);
 module.exports={
     userModel,
-    buzzModel,
+    buzzModel: models,
     complaintModel,
     departmentModel
 }

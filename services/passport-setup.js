@@ -1,15 +1,17 @@
 const passport=require("passport");
 const GoogleStrategy=require('passport-google-oauth20');
 const keys=require('../config/keys');
-const Models=require('../models/buzzModel');
+const Models=require('../models/Models');
 const User=Models.userModel;
 
 
 passport.serializeUser((user,done)=>{
+    console.log('serialize');
    done(null,user.id);
 });
 
 passport.deserializeUser((id, done) =>{
+    console.log('Deserialize');
     User.findById(id, (err, user) =>{
         done(err, user);
     });

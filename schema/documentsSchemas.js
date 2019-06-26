@@ -1,25 +1,26 @@
-var mongoose=require('mongoose');
-var Schema=mongoose.Schema;
-var userSchema=new Schema({
+let categoryType=['Activity','Lost and Found'];
+const mongoose=require('mongoose');
+const Schema=mongoose.Schema;
+const userSchema=new Schema({
     googleId:String,
     email:String,
     displayName:String,
     photoURL:String,
     accountCreated:Date,
     isAdmin:Boolean,
-    requestedForAdmin:Boolean
+    activeStatus:{
+            type:Boolean,
+            Default:true
+            },
+    requestedForAdmin:{
+        type:Boolean,
+        Default:false
+    }
 });
 const buzzSchema=new Schema({
     buzzId:Schema.Types.ObjectId,
-    buzz:{
-        type:String,
-        required:true
-    },
-    createdAt:{
-              type:Date,
-              Default:Date.now,
-              required:true
-              },
+    buzz:{ type:String, required:true },
+    createdAt:{ type:Date, Default:Date.now, required:true },
     comments:[{
                 commentBy:{
                     type:Schema.Types.ObjectId,
@@ -36,21 +37,19 @@ const buzzSchema=new Schema({
                     required:true
                 }
             }],
-    reactions:[
-        {
-            reactor:{
-                type:Schema.Types.ObjectId,
-                ref:'userModel'
-            },
-            reaction:{
-                type:String,
-            }
-        }
-        ],
+    like:[{user:{
+            type:Schema.Types.ObjectId,
+            ref:'userModel'
+        }}],
+    dislike:[{user:{
+            type:Schema.Types.ObjectId,
+            ref:'userModel'
+        }}],
     category:{
-        type:String,
-        required:true
-    },
+            type:String,
+            enum:categoryType,
+            required:true
+         },
     attachment:String,
     postedBy:{
         type:Schema.Types.ObjectId,
@@ -62,7 +61,7 @@ const buzzSchema=new Schema({
 let commentSchema=new Schema({
     commentId:String,
     commentText:String,
-    buzzId:{type:Schema.Types.ObjectId,ref:'buzzSchema'},
+    buzzId:{type:Schema.Types.ObjectId,ref:'documentsSchemas'},
     commentBy:{type:Schema.Types.ObjectId,ref:'userSchema'}
 });
 
@@ -74,12 +73,9 @@ const reactionSchema=new Schema({
 const complaintSchema=new Schema({
     department:{
       type:Schema.Types.ObjectId,
+        ref:'departmentSchema'
     },
     issueTitle:{
-        type:String,
-        required:true
-    },
-    email:{
         type:String,
         required:true
     },

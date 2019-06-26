@@ -1,6 +1,5 @@
 const createError = require('http-errors');
 const express = require('express');
-//const session=require('express-session');
 const session=require('cookie-session');
 require('./services/passport-setup');
 const path = require('path');
@@ -12,6 +11,7 @@ const indexRouter = require('./routes/index');
 const authRoutes=  require('./routes/auth-routes');
 const usersRouter = require('./routes/users');
 const buzzRoutes=require('./routes/buzzes');
+const complaintsRoutes=require('./routes/complaints');
 
 const mongoConnection=require('./connection');
 const cors=require('cors');
@@ -38,7 +38,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/auth',authRoutes);
 app.use('/buzzes',buzzRoutes);
-
+app.use('/complaints',complaintsRoutes);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
     next(createError(404));

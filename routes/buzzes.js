@@ -1,93 +1,65 @@
 let express = require('express');
+const upload=require('../middlewares/imageUploader');
+const cloudinary=require('cloudinary').v2;
 let router = express.Router();
-const Models=require('../models/buzzModel');
+const Models=require('../models/Models');
 const Buzz=Models.buzzModel;
-const jwt=require('jsonwebtoken');
-router.get('/', (req, res, next)=> {
-    const token=req.headers.authorization;
-    console.log("token on server at users route is : "+token);
-    jwt.verify(token,'secret',(err,decoded)=>{
-        if(err){
-            console.log('ERROR: Could not connect to protected route ');
-            res.sendStatus(403);
-        }
-        else{
-            console.log("decoded data is : "+JSON.stringify(decoded.data));
-            let _id=decoded.data;
+const verifyToken=require('../middlewares/jwtVerify');
+router.get('/', verifyToken,(req, res, next)=> {
             Buzz.find((err,buzzes)=>{
-                console.log("buzzes fetched from database is :"+buzzes);
                 res.send(buzzes);
             })
 
-        }
-    })
-});
 
-router.post('/',(req,res,next)=>{
-    const token=req.headers.authorization;
-    console.log("token on server at users route is : "+token);
-    console.log("request body is  : "+JSON.stringify(req.body));
-    console.log("request body is  : "+JSON.stringify(req.body.buzz));
-    console.log("request headers at servers is  : "+JSON.stringify(req.headers));
-    jwt.verify(token,'secret',(err,decoded)=>{
-        if(err){
-            console.log('ERROR: Could not connect to protected route ');
-            res.sendStatus(403);
-        }
-        else{
-            console.log("decoded data is : "+JSON.stringify(decoded.data));
-                console.log("-----------------");
-            new Buzz({
-                    buzz:req.body.buzz,
+    });
+router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
+    const {buzz,category}=req.body;
+            let imageURL='paddedToTest';
+            if(req.file) {
+                let imagePath = req.file.path;
+                if (imagePath) {
+                  await cloudinary.uploader.upload(imagePath)
+                        .then(result => {
+                            imageURL = result.secure_url
+                        }
+                    ).catch(err => {
+                        console.log("image upload failed"+err);
+                        res.sendStatus(304);
+                    });
+                }
+              }
+
+             new Buzz({
+                    buzz,
                     createdAt:Date(),
-                    category:req.body.category,
-                    attachment:req.body.attachment,
-                    postedBy:decoded.data,
+                    category,
+                    attachment:imageURL,
+                    postedBy:req.user.data,
                 })
                     .save()
                     .then(buzz=>{
                        res.send(buzz);
                     })
-            }
-    })
-});
+    });
 
-router.delete('/',(req,res,next)=>{
-    const token=req.headers.authorization;
+router.delete('/',verifyToken,(req,res,next)=>{
     const buzz_id=req.body._id;
-    jwt.verify(token,'secret',(err,decoded)=>{
-        if(err){
-            console.log('ERROR: Could not connect to protected route ');
-            res.sendStatus(403);
-        }
-        else {
-            Buzz.deleteOne({_id: buzz_id,postedBy: decoded.data})
-                .exec()
-                .then(result => {
-                res.status(200).json({
-                  message:'delete'+buzz_id,
-                })
-                })
-                .catch(err => {
-                    res.status(500).json({
-                        error: err
-                    })
-                });
-        }
-    })
-});
+    Buzz.deleteOne({_id: buzz_id,postedBy: req.user.data})
+        .exec()
+        .then(result => {
+            res.status(200).send(result);
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err
+            })
+        });
 
-router.put('/reaction',(req,res,next)=>{
-    const token=req.headers.authorization;
-    const buzz_id=req.body._id;
-    jwt.verify(token,'secret',(err,decoded)=>{
-       if(err){
-           console.log("ERROR: COULD NOT CONNECT TO PROTECTED ROUTE");
-           res.sendStatus(403);
-       }
-       else{
-        let userId=decoded.data;
-        let reaction=req.body.reaction;
+    });
+
+router.put('/reaction',verifyToken,(req,res,next)=>{
+        let {data:userId}=req.user;
+        const {_id:buzz_id,reaction}=req.body;
         Buzz.find({
             $and:[{_id: buzz_id},{'reactions.reactor':userId}]})
             .then((alreadyreacted)=>{
@@ -123,23 +95,14 @@ router.put('/reaction',(req,res,next)=>{
             .catch(err=>{
                 res.sendStatus(304);
             })
-       }
     });
-});
-router.put('/',(req,res,next)=>{
-    const token=req.headers.authorization;
-    const buzz_id=req.body._id;
-    jwt.verify(token,'secret',(err,decoded)=>{
-        if (err){
-            console.log("ERROR : COULD NOT CONNECT TO PROTECTED ROUTE");
-            res.sendStatus(403);
-        }
-        else
-        {
+router.put('/',verifyToken,(req,res,next)=>{
+    const {_id:buzz_id,commentText}=req.body;
+    const {data:userId}=req.user;
             try{
                 let newComment={
-                    commentBy:decoded.data,
-                    commentText:req.body.commentText,
+                    commentBy:userId,
+                    commentText:commentText,
                     commentedAt: Date.now()
                 }
                 Buzz.updateOne({_id:buzz_id},
@@ -155,8 +118,5 @@ router.put('/',(req,res,next)=>{
         }catch (e) {
                 console.log("error : "+e);
             }
-
-        }
-    })
 })
 module.exports = router;

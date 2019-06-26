@@ -10,20 +10,12 @@ router.get('/google',
     })
     );
 router.get('/google/redirect',passport.authenticate('google', {failureRedirect: '/google' }),(req,res)=>{
-    console.log("Requested User ID : ",req.user);
     const token=jwt.sign({
         data:req.user._id
     },'secret',{expiresIn: '24h'});
-    let referer='http://localhost:3001/dashboard/';
-    res.cookie("token",token)
+    let referer='http://localhost:3001/token?q='+token;
     res.redirect(referer);
 
-});
-router.get('/logout',(req,res,next)=>{
-    req.logOut();
-    console.log("logout called");
-    res.clearCookie('token');
-    res.redirect('http://localhost:3001/login');
 });
 module.exports=router;
 
