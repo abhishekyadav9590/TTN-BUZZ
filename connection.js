@@ -9,4 +9,6 @@ const connect=()=>{
         console.log('connected');
     });
 }
+
+mongoose.set('debug',true);
 module.exports={connect};

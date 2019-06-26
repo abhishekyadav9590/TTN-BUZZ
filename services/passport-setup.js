@@ -24,15 +24,10 @@ passport.use(
         clientID:keys.google.clientID,
         clientSecret:keys.google.clientSecret
     },(accessToken,refreshToken,profile,done)=>{
-        console.log('Access Token :'+accessToken);
-        console.log('Refresh Token :'+refreshToken);
-        console.log('My Name is  :'+profile.displayName);
-        console.log('Profile :'+JSON.stringify(profile));
-
         User.findOne({googleId:profile.id})
             .then((existingUser)=>{
                 if(existingUser){
-                        // user alrerady exist
+                        // user already exist
                     done(null,existingUser);
                 }
                 else{

@@ -6,9 +6,8 @@ const verifyToken=require('../middlewares/jwtVerify');
 
 /* GET users listing. */
 router.get('/', verifyToken,(req, res, next)=> {
-                        let _id=req.user.data;
+                        let _id=req.user;
                         User.findById(_id,(err,user)=>{
-                                console.log("user is :"+user);
                                 res.send(user);
                         })
 

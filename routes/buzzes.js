@@ -1,53 +1,64 @@
 let express = require('express');
 const upload=require('../middlewares/imageUploader');
-const cloudinary=require('cloudinary').v2;
+const cloudinary=require('../services/cloudinary-setup');
 let router = express.Router();
 const Models=require('../models/Models');
 const Buzz=Models.buzzModel;
+const User=Models.userModel;
+const clearReaction=require('../middlewares/clearReaction');
 const verifyToken=require('../middlewares/jwtVerify');
+
+
 router.get('/', verifyToken,(req, res, next)=> {
-            Buzz.find((err,buzzes)=>{
-                res.send(buzzes);
-            })
-
-
+    Buzz.find({})
+        .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
+        .exec((err,buzzes) =>{
+            console.log("Buzzes after populate is :",buzzes);
+            res.send(buzzes);
+            }
+        )
     });
 router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
+    console.log('-----------req in buzz post is :',req.body);
     const {buzz,category}=req.body;
-            let imageURL='paddedToTest';
+    const {user:userId}=req;
+            let imageURL='';
             if(req.file) {
                 let imagePath = req.file.path;
                 if (imagePath) {
-                  await cloudinary.uploader.upload(imagePath)
-                        .then(result => {
-                            imageURL = result.secure_url
-                        }
-                    ).catch(err => {
-                        console.log("image upload failed"+err);
-                        res.sendStatus(304);
-                    });
+                    console.log("image path is :"+imagePath);
+                  await cloudinary.uploader.upload(imagePath,(err,data)=>{
+                      if (err){
+                          console.log("error in buzz image upload .",err);
+                      }
+                      else
+                      {
+                          imageURL=data.secure_url
+                      }
+                  });
                 }
               }
-
              new Buzz({
                     buzz,
                     createdAt:Date(),
                     category,
                     attachment:imageURL,
-                    postedBy:req.user.data,
-                })
-                    .save()
-                    .then(buzz=>{
+                    postedBy:userId
+                }).save()
+                   .then(buzz=>{
                        res.send(buzz);
-                    })
+                   }).catch(err=>{
+                        console.log("error in saving buzz to db "+err);
+                        res.sendStatus(500);
+             })
     });
 
 router.delete('/',verifyToken,(req,res,next)=>{
-    const buzz_id=req.body._id;
-    Buzz.deleteOne({_id: buzz_id,postedBy: req.user.data})
+    const {_id:buzzId,user:userId}=req.body;
+    Buzz.deleteOne({_id: buzzId,postedBy: userId})
         .exec()
         .then(result => {
-            res.status(200).send(result);
+            res.send(buzzId);
         })
         .catch(err => {
             res.status(500).json({
@@ -55,7 +66,7 @@ router.delete('/',verifyToken,(req,res,next)=>{
             })
         });
 
-    });
+});
 
 router.put('/reaction',verifyToken,(req,res,next)=>{
         let {data:userId}=req.user;
@@ -66,7 +77,7 @@ router.put('/reaction',verifyToken,(req,res,next)=>{
                 if (alreadyreacted){
                    Buzz.updateOne({_id:buzz_id,'reactions.reactor':userId},{$set:{'reactions.$.reaction':reaction}},(err,success)=>{
                        if (err) {
-                           res.sendStatus(304);
+                           res.sendStatus(500);
                        }
                        else {
                            res.send(success);
@@ -112,11 +123,89 @@ router.put('/',verifyToken,(req,res,next)=>{
                     }
                     else
                     {
-                        console.log("success"+success);
+                        console.log(success);
                     }
                 })
         }catch (e) {
+                res.sendStatus(500);
                 console.log("error : "+e);
             }
 })
+
+router.put('/like',verifyToken,clearReaction,(req,res,next)=>{
+   const {buzzId} = req.body.data;
+    const {user} =req.body;
+   Buzz.find({$and:[{_id:buzzId},{'like.user':user}]})
+       .then(result=>{
+        if(result.length){
+            let userDelete={user}
+            Buzz.findOneAndUpdate({_id:buzzId},
+                {$pull:{like:userDelete}},{new:true})
+                .then(result=>{
+                    console.log("------------->",result);
+                    res.status(200).send(result);
+                })
+                .catch(err=>{
+                    res.sendStatus(500);
+                })
+        }
+        else
+        {
+            let like={user};
+            Buzz.findOneAndUpdate({_id:buzzId},
+                {$push:{like}},{new:true},(err,success)=>{
+                if (err) {
+                    res.sendStatus(500);
+                }
+                else
+                {
+                    console.log('response document after like',success);
+                    res.status(200).send(success);
+                }
+                },
+                )
+        }
+       })
+       .catch(err=>{
+           res.sendStatus(500);
+       });
+
+});
+
+router.put('/dislike',verifyToken, clearReaction, (req,res,next)=>{
+    const {buzzId} = req.body.data;
+    const {user} =req.body;
+    Buzz.find({$and:[{_id:buzzId},{'dislike.user':user}]})
+        .then(result=>{
+            if(result.length){
+                let deletedislike={user}
+                Buzz.findOneAndUpdate({_id:buzzId},
+                    {$pull:{dislike:deletedislike}},{new:true})
+                    .then(result=>{
+                        res.status(200).send(result)
+                    })
+                    .catch(err=>{
+                        res.sendStatus(500);
+                    })
+            }
+            else
+            {
+                let dislike={user};
+                Buzz.findOneAndUpdate({_id:buzzId},
+                    {$push:{dislike}},{new:true},(err,success)=>{
+                        if (err) {
+                            res.sendStatus(500);
+                        }
+                        else
+                        {
+                            res.status(200).send(success);
+                        }
+                    })
+            }
+        })
+        .catch(err=>{
+            res.sendStatus(500);
+        });
+
+});
 module.exports = router;

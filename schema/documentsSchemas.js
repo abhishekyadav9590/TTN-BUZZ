@@ -18,7 +18,6 @@ const userSchema=new Schema({
     }
 });
 const buzzSchema=new Schema({
-    buzzId:Schema.Types.ObjectId,
     buzz:{ type:String, required:true },
     createdAt:{ type:Date, Default:Date.now, required:true },
     comments:[{
@@ -58,18 +57,7 @@ const buzzSchema=new Schema({
     }
 },{autoIndex: false });
 
-let commentSchema=new Schema({
-    commentId:String,
-    commentText:String,
-    buzzId:{type:Schema.Types.ObjectId,ref:'documentsSchemas'},
-    commentBy:{type:Schema.Types.ObjectId,ref:'userSchema'}
-});
 
-const reactionSchema=new Schema({
-    reactionId:String,
-    reaction:String,
-    reactedBy:{type:Schema.Types.ObjectId,ref:'userSchema'}
-});
 const complaintSchema=new Schema({
     department:{
       type:Schema.Types.ObjectId,
@@ -94,7 +82,8 @@ const complaintSchema=new Schema({
     },
     attachment:String,
     status:{
-        type:String
+        type:String,
+        default:"OPEN"
     },
 });
 const departmentSchema=new Schema({
@@ -104,12 +93,9 @@ const departmentSchema=new Schema({
     }
 });
 
-
 module.exports={
     userSchema,
     buzzSchema,
     complaintSchema,
-    departmentSchema,
-    reactionSchema,
-    commentSchema
+    departmentSchema
 }
