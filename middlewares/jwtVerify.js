@@ -6,9 +6,7 @@ module.exports=(req,res,next)=> {
             res.sendStatus(403);
         } else {
             req.body.user = decoded.data;
-            console.log('request JWT :',req.body)
             req.user = decoded.data;
-            console.log('======>',req.user);
             next();
         }
     })

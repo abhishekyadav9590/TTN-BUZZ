@@ -1,10 +1,9 @@
 const cloudinary=require('cloudinary').v2;
 const keys=require('../config/keys');
-
 cloudinary.config({
-    cloud_name:keys.cloud_name,
-    api_key:keys.api_key,
-    api_secret:keys.api_secret
+    cloud_name:keys.cloudinary.cloud_name,
+    api_key:keys.cloudinary.api_key,
+    api_secret:keys.cloudinary.api_secret
 });
 
 module.exports=cloudinary;

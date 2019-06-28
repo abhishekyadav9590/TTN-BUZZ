@@ -9,25 +9,25 @@ const clearReaction=require('../middlewares/clearReaction');
 const verifyToken=require('../middlewares/jwtVerify');
 
 
-router.get('/', verifyToken,(req, res, next)=> {
+router.get('/', verifyToken,(req, res)=> {
     Buzz.find({})
+        .sort({ 'createdAt':-1})
         .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
-        .exec((err,buzzes) =>{
-            console.log("Buzzes after populate is :",buzzes);
-            res.send(buzzes);
-            }
-        )
+        .exec()
+        .then(buzzes=>{
+            res.status(200).send(buzzes);
+        })
+        .catch(err=>console.log("error in buzz get router"+err))
+
     });
 router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
-    console.log('-----------req in buzz post is :',req.body);
     const {buzz,category}=req.body;
+    console.log("req.file is :"+req.file);
     const {user:userId}=req;
             let imageURL='';
             if(req.file) {
-                let imagePath = req.file.path;
-                if (imagePath) {
-                    console.log("image path is :"+imagePath);
-                  await cloudinary.uploader.upload(imagePath,(err,data)=>{
+                if (req.file.path) {
+                  await cloudinary.uploader.upload(req.file.path,(err,data)=>{
                       if (err){
                           console.log("error in buzz image upload .",err);
                       }
@@ -46,7 +46,13 @@ router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
                     postedBy:userId
                 }).save()
                    .then(buzz=>{
-                       res.send(buzz);
+                       Buzz.findById(buzz._id)
+                           .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
+                           .then(buzzes=>{
+                               res.status(200).send(buzzes);
+                           })
+                           .catch(err=>console.log("error in buzz get router"+err))
+
                    }).catch(err=>{
                         console.log("error in saving buzz to db "+err);
                         res.sendStatus(500);
@@ -141,6 +147,7 @@ router.put('/like',verifyToken,clearReaction,(req,res,next)=>{
             let userDelete={user}
             Buzz.findOneAndUpdate({_id:buzzId},
                 {$pull:{like:userDelete}},{new:true})
+                .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
                 .then(result=>{
                     console.log("------------->",result);
                     res.status(200).send(result);
@@ -149,21 +156,18 @@ router.put('/like',verifyToken,clearReaction,(req,res,next)=>{
                     res.sendStatus(500);
                 })
         }
-        else
-        {
-            let like={user};
-            Buzz.findOneAndUpdate({_id:buzzId},
-                {$push:{like}},{new:true},(err,success)=>{
-                if (err) {
+        else {
+            let like = {user};
+            Buzz.findOneAndUpdate({_id: buzzId},
+                {$push: {like}},{new:true})
+                .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
+                .then(data => {
+                    res.send(data)
+                })
+                .catch(err => {
                     res.sendStatus(500);
-                }
-                else
-                {
-                    console.log('response document after like',success);
-                    res.status(200).send(success);
-                }
-                },
-                )
+                })
+
         }
        })
        .catch(err=>{
@@ -181,6 +185,7 @@ router.put('/dislike',verifyToken, clearReaction, (req,res,next)=>{
                 let deletedislike={user}
                 Buzz.findOneAndUpdate({_id:buzzId},
                     {$pull:{dislike:deletedislike}},{new:true})
+                    .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
                     .then(result=>{
                         res.status(200).send(result)
                     })
@@ -192,15 +197,10 @@ router.put('/dislike',verifyToken, clearReaction, (req,res,next)=>{
             {
                 let dislike={user};
                 Buzz.findOneAndUpdate({_id:buzzId},
-                    {$push:{dislike}},{new:true},(err,success)=>{
-                        if (err) {
-                            res.sendStatus(500);
-                        }
-                        else
-                        {
-                            res.status(200).send(success);
-                        }
-                    })
+                    {$push:{dislike}},{new:true})
+                    .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
+                    .then(data=>res.send(data))
+                    .catch(err=>console.log(err))
             }
         })
         .catch(err=>{

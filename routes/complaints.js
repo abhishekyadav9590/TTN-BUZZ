@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+const mongoose=require('mongoose');
 const Models=require('../models/Models');
 const Complaints=Models.complaintModel;
 const Department=Models.departmentModel;
@@ -10,18 +11,18 @@ const verifyToken=require('../middlewares/jwtVerify');
 
 /* GET users listing. */
 
-router.get('/', verifyToken,(req, res, next)=> {
+router.get('/', verifyToken,(req, res)=> {
     Complaints.find({})
         .populate({path:'RaisedBy',model:User,select:'displayName'})
+        .populate({path:'assignedTo',model:User,select:'displayName'})
         .populate({path:'department',model: Department,select: 'deptName'})
         .exec((err,complain) =>{
-                console.log("complain after populate is :",complain);
                 res.send(complain);
             }
         )
 });
 
-router.get('/mycomplaints',verifyToken,(req,res,next)=>{
+router.get('/mycomplaints',verifyToken,(req,res)=>{
             Complaints.find({RaisedBy: req.user.data},(err,complaints)=>{
                 res.send(complaints);
             })
@@ -29,15 +30,14 @@ router.get('/mycomplaints',verifyToken,(req,res,next)=>{
 
 router.get('/departments',verifyToken,(req,res)=>{
     Department.find({},(err,department)=>{
-        console.log(department);
         res.status(200).send(department);
     });
 
 });
 
 router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
-    const {department,issueTitle,concern,attachment,email}=req.body;
-    console.log("------------------------->",req.body);
+    let assignedTo;
+    const {department,issueTitle,concern,email}=req.body;
         let imageURL='';
         if(req.file){
             let imagePath = req.file.path;
@@ -54,27 +54,71 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
                 });
             }
         }
-           new Complaints({
-               department,
-               issueTitle,
-               concern,
-               RaisedBy:req.user,
-               email,
-               attachment,
-               status:"FILED"
-           })
-               .save()
-               .then(complaints=>{
-                   res.send(complaints);
-               }).catch(err=>{
-                console.log("error in filing complaints..........>"+err);
-           });
+      User.find({$and:[{department:department},{isAdmin:true}]})
+            .then(result=>{
+                if(result.length>0){
+                    assignedTo=result[0]._id;
+                }
+                else{
+                    User.find({isSuperAdmin:true})
+                        .then(result=>{
+                            if(result.length>0){
+                                console.log(typeof assignedTo)
+                                console.log('assssssssssssssssssssssigned To :',assignedTo)
+                                console.log('result-------------->',result[0]._id);
+                                assignedTo=result[0]._id;
+                                console.log('assssssssssssssssssssssigned To :',assignedTo)
+                                console.log(typeof assignedTo)
+                            }
+                            else
+                                assignedTo=req.user;
+                        })
+                        .catch(err=>console.log("error in assigned to :",err));
+                }
+                new Complaints({
+                    department,
+                    issueTitle,
+                    concern,
+                    RaisedBy:req.user,
+                    assignedTo,
+                    attachment:imageURL,
+                    status:"PENDING"
+                })
+                    .save()
+                    .then(complaints=> {
+                        Complaints.findById(complaints._id)
+                            .sort({createAt:-1})
+                            .populate({path: 'RaisedBy', model: User, select: '_id displayName photoURL'})
+                            .populate({path: 'assignedTo', model: User, select: '_id displayName photoURL'})
+                            .populate({path: 'department', model: Department})
+                            .then(populatedComplaint => {
+                                res.status(200).send(populatedComplaint);
+                            })
+                            .catch(err => {
+                                console.log("error in filing complaints..........>" + err);
+                                res.sendStatus(500);
+                            })
+                    })
+                    .catch(err=>{
+                    console.log("error in filing complaints..........>"+err);
+                    res.sendStatus(500);
+                });
+            })
+          .catch(err=>{
+              console.log("error occured in the complaint filling .."+err);
+              res.sendStatus(500);
+          })
 });
 router.patch('/',verifyToken,(req,res,next)=>{
-    const {_id:complaintId,assignedTo}=req.body;
-            Complaints.updateOne({_id:complaintId},{$set:{'assignedTo':assignedTo}})
+    const {complaintId,complaintStatus}=req.body;
+            Complaints.findOneAndUpdate({_id:complaintId},{$set:{status:complaintStatus}})
+                .populate({path:'RaisedBy',model:User,select:'displayName'})
+                .populate({path:'assignedTo',model:User,select:'displayName'})
+                .populate({path:'department',model: Department,select: 'deptName'})
                 .then(result=>{
+                    console.log("resoponse to send to front end is :",result)
                     res.send(result);
                 })
 });
+
 module.exports = router;

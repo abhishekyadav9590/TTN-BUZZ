@@ -3,6 +3,8 @@ const GoogleStrategy=require('passport-google-oauth20');
 const keys=require('../config/keys');
 const Models=require('../models/Models');
 const User=Models.userModel;
+const department=Models.departmentModel;
+const mongoose = require('mongoose');
 
 
 passport.serializeUser((user,done)=>{
@@ -31,17 +33,23 @@ passport.use(
                     done(null,existingUser);
                 }
                 else{
+                   // let  depart=new department('5d121ccafd6e2f8622b48020');
                     new User({
                         googleId:profile.id,
                         email:profile.emails[0].value,
                         displayName:profile.displayName,
                         photoURL: profile.photos[0].value,
-                        accountCreated: Date()
+                        accountCreated: Date(),
+                        isActive:true,
+                       department:mongoose.Types.ObjectId('5d121ccafd6e2f8622b48020')
+
                     })
                         .save()
                         .then(user=>{
                             done(null,user);
-                        })
+                        }).catch(err=>{
+                            console.log("error in user creation :",err);
+                    })
                 }
             })
 

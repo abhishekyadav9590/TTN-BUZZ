@@ -7,14 +7,23 @@ const userSchema=new Schema({
     displayName:String,
     photoURL:String,
     accountCreated:Date,
-    isAdmin:Boolean,
-    activeStatus:{
+    isAdmin:{
+        type:Boolean,
+        default: false
+    },
+    isActive:{
             type:Boolean,
             Default:true
             },
     requestedForAdmin:{
         type:Boolean,
         Default:false
+    },
+    department: {
+        type:Schema.Types.ObjectId,
+        required:true,
+        ref:'departmentModel',
+
     }
 });
 const buzzSchema=new Schema({
@@ -61,7 +70,7 @@ const buzzSchema=new Schema({
 const complaintSchema=new Schema({
     department:{
       type:Schema.Types.ObjectId,
-        ref:'departmentSchema'
+        ref:'departmentModel'
     },
     issueTitle:{
         type:String,
@@ -78,7 +87,8 @@ const complaintSchema=new Schema({
     },
     assignedTo:{
         type:Schema.Types.ObjectId,
-        ref:'userModel'
+        ref:'userModel',
+        required:true
     },
     attachment:String,
     status:{
