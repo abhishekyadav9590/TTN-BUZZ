@@ -27,7 +27,6 @@ router.get('/:skip', verifyToken,(req, res)=> {
     });
 router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
     const {buzz,category}=req.body;
-    console.log("req.file is :"+req.file);
     const {user:userId}=req;
             let imageURL='';
             if(req.file) {
