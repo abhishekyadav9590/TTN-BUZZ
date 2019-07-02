@@ -30,9 +30,9 @@ router.post('/',verifyToken,upload.single('attachment'),async (req,res)=>{
     const userId=req.user;
     console.log("data from client is :",req.body);
     console.log("data from client is :",req.user);
-    console.log("data from client is :"+req.file);
+    console.log("file from client is :"+req.file);
 
-    let imageURL='https://erp.psit.in/assets/img/Simages/20745.jpg';
+    let imageURL='';
         if(req.file) {
             if (req.file.path) {
                 await cloudinary.uploader.upload(req.file.path,(err,result)=>{

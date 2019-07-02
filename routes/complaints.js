@@ -87,7 +87,6 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
                     .save()
                     .then(complaints=> {
                         Complaints.findById(complaints._id)
-                            .sort({createAt:-1})
                             .populate({path: 'RaisedBy', model: User, select: '_id displayName photoURL'})
                             .populate({path: 'assignedTo', model: User, select: '_id displayName photoURL'})
                             .populate({path: 'department', model: Department})

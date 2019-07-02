@@ -9,12 +9,17 @@ const clearReaction=require('../middlewares/clearReaction');
 const verifyToken=require('../middlewares/jwtVerify');
 
 
-router.get('/', verifyToken,(req, res)=> {
+router.get('/:skip', verifyToken,(req, res)=> {
+    let skipValue=parseInt(req.params.skip);
+    console.log("---------------skip value is :"+skipValue)
     Buzz.find({})
         .sort({ 'createdAt':-1})
+        .limit(5)
+        .skip(skipValue)
         .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
         .exec()
         .then(buzzes=>{
+            console.log("buzzes to send as response : "+buzzes)
             res.status(200).send(buzzes);
         })
         .catch(err=>console.log("error in buzz get router"+err))
