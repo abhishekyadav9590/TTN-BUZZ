@@ -8,6 +8,7 @@ const User=Models.userModel;
 const upload=require('../middlewares/imageUploader');
 const cloudinary=require('../services/cloudinary-setup');
 const verifyToken=require('../middlewares/jwtVerify');
+const transporter=require('../services/nodemailer-setup');
 
 /* GET users listing. */
 
@@ -42,10 +43,9 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
         if(req.file){
             let imagePath = req.file.path;
             if (imagePath) {
-                console.log("image path is :"+imagePath);
                 await cloudinary.uploader.upload(imagePath,(err,data)=>{
                     if (err){
-                        console.log("error in buzz image upload .",err);
+                        res.status(500).send({message:"Image Upload failed"})
                     }
                     else
                     {
@@ -63,12 +63,7 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
                     User.find({isSuperAdmin:true})
                         .then(result=>{
                             if(result.length>0){
-                                console.log(typeof assignedTo)
-                                console.log('assssssssssssssssssssssigned To :',assignedTo)
-                                console.log('result-------------->',result[0]._id);
                                 assignedTo=result[0]._id;
-                                console.log('assssssssssssssssssssssigned To :',assignedTo)
-                                console.log(typeof assignedTo)
                             }
                             else
                                 assignedTo=req.user;
@@ -87,10 +82,28 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
                     .save()
                     .then(complaints=> {
                         Complaints.findById(complaints._id)
-                            .populate({path: 'RaisedBy', model: User, select: '_id displayName photoURL'})
-                            .populate({path: 'assignedTo', model: User, select: '_id displayName photoURL'})
+                            .populate({path: 'RaisedBy', model: User, select: '_id displayName photoURL email'})
+                            .populate({path: 'assignedTo', model: User, select: '_id displayName photoURL email'})
                             .populate({path: 'department', model: Department})
                             .then(populatedComplaint => {
+                                transporter.sendMail({
+                                    from: 'abhishek.yadav@tothenew.com',
+                                    to:populatedComplaint.assignedTo.email,
+                                    subject: "You have a new complaint to resolve.",
+                                    html: "<b>" +
+                                        "You have a new complaint to resolve, filed by "+ populatedComplaint.RaisedBy.displayName +" of department "+populatedComplaint.department.deptName
+                                        +"</b> <hr><br/> Attachment <img src="+populatedComplaint.attachment+" alt='attachment image'>"
+
+                                });
+                                transporter.sendMail({
+                                    from: 'abhishek.yadav@tothenew.com',
+                                    to: populatedComplaint.RaisedBy.email,
+                                    subject: "Your complaint has been filed.",
+                                    html: "<b>" +
+                                        "Your complaint has been filed and assigned to "+ populatedComplaint.assignedTo.displayName +" of department "+populatedComplaint.department.deptName
+                                        +"</b> <hr><br/> Attachment <img src="+populatedComplaint.attachment+" alt='attachment image'>"
+
+                                });
                                 res.status(200).send(populatedComplaint);
                             })
                             .catch(err => {
@@ -99,25 +112,31 @@ router.post('/',verifyToken,upload.single('attachment'), async (req,res,next)=>{
                             })
                     })
                     .catch(err=>{
-                    console.log("error in filing complaints..........>"+err);
+                    console.log("error in filing complaints..........Assigned to :>"+err);
                     res.sendStatus(500);
                 });
             })
           .catch(err=>{
-              console.log("error occured in the complaint filling .."+err);
               res.sendStatus(500);
           })
 });
+
 router.patch('/',verifyToken,(req,res,next)=>{
     const {complaintId,complaintStatus}=req.body;
-            Complaints.findOneAndUpdate({_id:complaintId},{$set:{status:complaintStatus}})
-                .populate({path:'RaisedBy',model:User,select:'displayName'})
-                .populate({path:'assignedTo',model:User,select:'displayName'})
-                .populate({path:'department',model: Department,select: 'deptName'})
-                .then(result=>{
-                    console.log("resoponse to send to front end is :",result)
-                    res.send(result);
+            Complaints.updateOne({_id:complaintId},{$set:{status:complaintStatus}})
+                .then(success=>{
+                    Complaints.find({_id:complaintId})
+                        .populate({path:'RaisedBy',model:User,select:'displayName'})
+                        .populate({path:'assignedTo',model:User,select:'displayName'})
+                        .populate({path:'department',model: Department,select: 'deptName'})
+                        .then(result=>{
+                            res.status(200).send(result);
+                        })
                 })
+                .catch(err=>{
+                    res.sendStatus(500);
+                })
+
 });
 
 module.exports = router;

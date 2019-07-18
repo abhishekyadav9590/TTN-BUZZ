@@ -1,7 +1,8 @@
 let jwt=require('jsonwebtoken');
+const keys=require('../config/keys');
 module.exports=(req,res,next)=> {
     const token = req.headers.authorization;
-    jwt.verify(token, 'secret', (err, decoded) => {
+    jwt.verify(token, keys.jwt.secret, (err, decoded) => {
         if (err) {
             res.sendStatus(403);
         } else {

@@ -5,9 +5,8 @@ mongoose.connect(db_url,{useNewUrlParser:true});
 let db=mongoose.connection;
 
 const connect=()=>{
-    db.once('open',()=>{
-        console.log('connected');
-    });
+    db.on('error', ()=>console.log('connection error:'));
+    db.once('open',()=>console.log('connected'));
 }
 
 mongoose.set('debug',true);

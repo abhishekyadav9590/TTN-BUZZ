@@ -1,6 +1,7 @@
 const router=require('express').Router();
 const passport=require('passport');
 const jwt=require('jsonwebtoken');
+const keys=require('../config/keys');
 //auth login
 //auth with google
 router.get('/google',
@@ -12,7 +13,7 @@ router.get('/google',
 router.get('/google/redirect',passport.authenticate('google', {failureRedirect: '/google' }),(req,res)=>{
     const token=jwt.sign({
         data:req.user._id
-    },'secret',{expiresIn: '24h'});
+    },keys.jwt.secret/*,{expiresIn: '24h'}*/);
     let referer='http://localhost:3001/token?q='+token;
     res.redirect(referer);
 

@@ -3,7 +3,6 @@ const express = require('express');
 require('./services/cloudinary-setup');
 require('./services/passport-setup');
 const path = require('path');
-const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const passport=require('passport');
 
@@ -27,7 +26,6 @@ app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(passport.initialize());
 app.use('/', indexRouter);

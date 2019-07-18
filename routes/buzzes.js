@@ -11,21 +11,17 @@ const verifyToken=require('../middlewares/jwtVerify');
 
 router.get('/:skip', verifyToken,(req, res)=> {
     let skipValue=parseInt(req.params.skip);
-    console.log("---------------skip value is :"+skipValue)
     Buzz.find({})
         .sort({ 'createdAt':-1})
         .limit(5)
         .skip(skipValue)
         .populate({path:'postedBy',model:User,select:'_id displayName photoURL'})
         .exec()
-        .then(buzzes=>{
-            console.log("buzzes to send as response : "+buzzes)
-            res.status(200).send(buzzes);
-        })
+        .then(buzzes=>res.status(200).send(buzzes))
         .catch(err=>console.log("error in buzz get router"+err))
 
     });
-router.post('/',verifyToken,upload.single('attachment'), async(req,res,next)=>{
+router.post('/',verifyToken,upload.single('attachment'), async(req,res)=>{
     const {buzz,category}=req.body;
     const {user:userId}=req;
             let imageURL='';
@@ -117,29 +113,32 @@ router.put('/reaction',verifyToken,(req,res,next)=>{
                 res.sendStatus(304);
             })
     });
-router.put('/',verifyToken,(req,res,next)=>{
-    const {_id:buzz_id,commentText}=req.body;
-    const {data:userId}=req.user;
+// comment's route............
+router.put('/',verifyToken,(req,res)=>{
+    const {buzzId,commentText}=req.body;
+    const {user}=req;
             try{
                 let newComment={
-                    commentBy:userId,
+                    commentBy:user,
                     commentText:commentText,
                     commentedAt: Date.now()
                 }
-                Buzz.updateOne({_id:buzz_id},
+                Buzz.updateOne({_id:buzzId},
                     {$push:{comments:newComment}},(err,success)=>{
                     if (err){
                         console.log("error in commenting :"+err);
+                        res.send("error in update one");
                     }
                     else
                     {
                         console.log(success);
+                        res.status(200).send(success);
                     }
                 })
-        }catch (e) {
-                res.sendStatus(500);
-                console.log("error : "+e);
-            }
+        }catch (err) {
+                console.log("error : "+err);
+                res.send("error body now found");
+      }
 })
 
 router.put('/like',verifyToken,clearReaction,(req,res,next)=>{

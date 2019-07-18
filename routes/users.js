@@ -54,7 +54,10 @@ router.post('/',verifyToken,upload.single('attachment'),async (req,res)=>{
                 .then(data=>{
                     res.status(200).send(data);
                 })
-                .catch(err=>console.log(err));
+                .catch(err=>{
+                    console.log(err)
+                    res.sendStatus(500);
+                });
         })
         .catch(err=>console.log("error ",err));
 });
